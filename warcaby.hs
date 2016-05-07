@@ -1,4 +1,4 @@
-data Fig =  W | B | WD | BD | E deriving Show
+data Fig = W | B | WD | BD | E deriving Show
 type Board = [[Fig]]
 
 charToFig :: Char -> Fig
@@ -18,4 +18,8 @@ figToChar E = '.'
 fromStr str = map charToFig str
 toStr l = map figToChar l
 
-showBoard b = map fromStr (lines b)
+initBoard :: String -> Board
+initBoard str = map fromStr (lines str)
+
+showBoard :: Board -> IO()
+showBoard b = putStr (unlines (map toStr [x | x <- b]))
