@@ -40,12 +40,12 @@ showBoard board = unlines (addColNumbers (addRowNumbers (boardToStr board)))
 getFig :: Board -> Int -> Int -> Fig
 getFig board row col = board !! row !! col
 
-replaceWith :: Fig -> [Fig] -> Int -> [Fig]
-replaceWith fig (h:t) 0 = fig : t
-replaceWith fig (h:t) col = h : replaceWith fig t (col - 1)
+replaceWithFig :: Fig -> [Fig] -> Int -> [Fig]
+replaceWithFig fig (h:t) 0 = fig : t
+replaceWithFig fig (h:t) col = h : replaceWithFig fig t (col - 1)
 
 setFig :: Fig -> Board -> Int -> Int -> Board
-setFig fig (h:t) 0 col = replaceWith fig h col : t
+setFig fig (h:t) 0 col = replaceWithFig fig h col : t
 setFig fig (h:t) row col = h : setFig fig t (row - 1) col
 
 b = initBoard ".b.b.b.b\nb.b.b.b.\n.b.b.b.b\n........\n........\nw.w.w.w.\n.w.w.w.w\nw.w.w.w."
