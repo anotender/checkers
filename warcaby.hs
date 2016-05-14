@@ -37,5 +37,16 @@ addColNumbers board = ["  1 2 3 4 5 6 7 8"] ++ board
 showBoard :: Board -> String
 showBoard board = unlines (addColNumbers (addRowNumbers (boardToStr board)))
 
+getFig :: Board -> Int -> Int -> Fig
+getFig board row col = board !! row !! col
+
+replaceWith :: Fig -> [Fig] -> Int -> [Fig]
+replaceWith fig (h:t) 0 = fig : t
+replaceWith fig (h:t) col = h : replaceWith fig t (col - 1)
+
+setFig :: Fig -> Board -> Int -> Int -> Board
+setFig fig (h:t) 0 col = replaceWith fig h col : t
+setFig fig (h:t) row col = h : setFig fig t (row - 1) col
+
 b = initBoard ".b.b.b.b\nb.b.b.b.\n.b.b.b.b\n........\n........\nw.w.w.w.\n.w.w.w.w\nw.w.w.w."
 x = showBoard b
