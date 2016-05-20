@@ -92,7 +92,7 @@ getWhiteFigSimpleMoves b (row, col) = [(x, y) | x <- [(row - 1)], y <- [(col - 1
 getWhiteFigMoves :: Board -> Pos -> [Pos]
 getWhiteFigMoves b p = getWhiteFigSimpleMoves b p ++ getWhiteFigComplexMoves b p
 
-getPossibleMoves :: Board -> Pos -> [(Int,Int)]
+getPossibleMoves :: Board -> Pos -> [Pos]
 getPossibleMoves b p
 	| isEmpty b p = []
 	| isWhite b p = getWhiteFigMoves b p
