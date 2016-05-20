@@ -67,14 +67,11 @@ isBlack b p = (getFig b p) == B || (getFig b p) == BD
 isValidPos :: Pos -> Bool
 isValidPos (row, col) = (row >= 0) && (row <= 7) && (col >= 0) && (col <= 7)
 
-countRow :: Int -> Int -> Int
-countRow row neighborRow = 2 * neighborRow - row
-
-countCol :: Int -> Int -> Int
-countCol col neighborCol = 2 * neighborCol - col
+countIndex :: Int -> Int -> Int
+countIndex index neighborIndex = 2 * neighborIndex - index
 
 countPos :: Pos -> Pos -> Pos
-countPos (row, col) (neighborRow, neighborCol) = ((countRow row neighborRow), (countCol col neighborCol))
+countPos (row, col) (neighborRow, neighborCol) = ((countIndex row neighborRow), (countIndex col neighborCol))
 
 --n is a list of nieghbors
 getCaptureMoves :: Board -> Pos -> [Pos] -> [Pos]
