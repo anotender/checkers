@@ -1,7 +1,7 @@
 import Data.List
 
 data Fig = W | B | WD | BD | E deriving (Show,Eq)
--- data Pos = ()
+type Pos = (Int, Int)
 type Board = [[Fig]]
 
 charToFig :: Char -> Fig
@@ -38,35 +38,75 @@ addColNumbers board = ["  1 2 3 4 5 6 7 8"] ++ board
 showBoard :: Board -> String
 showBoard board = unlines (addColNumbers (addRowNumbers (boardToStr board)))
 
-getFig :: Board -> Int -> Int -> Fig
-getFig board row col = board !! row !! col
+getFig :: Board -> Pos -> Fig
+getFig board (row, col) = board !! row !! col
 
 replaceWithFig :: Fig -> [Fig] -> Int -> [Fig]
 replaceWithFig fig (h:t) 0 = fig : t
 replaceWithFig fig (h:t) col = h : replaceWithFig fig t (col - 1)
 
-setFig :: Fig -> Board -> Int -> Int -> Board
-setFig fig (h:t) 0 col = replaceWithFig fig h col : t
-setFig fig (h:t) row col = h : setFig fig t (row - 1) col
+setFig :: Fig -> Board -> Pos -> Board
+setFig fig (h:t) (0, col) = replaceWithFig fig h col : t
+setFig fig (h:t) (row, col) = h : setFig fig t ((row - 1), col)
 
-isEmpty :: Board -> Int -> Int -> Bool
-isEmpty board row col = (getFig board row col) == E
+getRow :: Pos -> Int
+getRow p = fst p
 
-isWhite :: Board -> Int -> Int -> Bool
-isWhite board row col = (getFig board row col) == W || (getFig board row col) == WD
+getCol :: Pos -> Int
+getCol p = snd p
 
-isBlack :: Board -> Int -> Int -> Bool
-isBlack board row col = (getFig board row col) == B || (getFig board row col) == BD
+isEmpty :: Board -> Pos -> Bool
+isEmpty b p = (getFig b p) == E
 
-isValidPos :: (Int, Int) -> Bool
+isWhite :: Board -> Pos -> Bool
+isWhite b p = (getFig b p) == W || (getFig b p) == WD
+
+isBlack :: Board -> Pos -> Bool
+isBlack b p = (getFig b p) == B || (getFig b p) == BD
+
+isValidPos :: Pos -> Bool
 isValidPos (row, col) = (row >= 0) && (row <= 7) && (col >= 0) && (col <= 7)
 
-getWhiteFigMoves board row col = filter isValidPos [((row - 1), (col - 1)), ((row - 1), (col + 1))]
+countRow :: Int -> Int -> Int
+countRow row neighborRow = 2 * neighborRow - row
 
-getPossibleMoves board row col
-	| isEmpty board row col = []
-	| isWhite board row col = getWhiteFigMoves board row col
-	| isBlack board row col = []
+countCol :: Int -> Int -> Int
+countCol col neighborCol = 2 * neighborCol - col
 
-b = initBoard ".b.b.b.b\nb.b.b.b.\n.b.b.b.b\n........\n........\nw.w.w.w.\n.w.w.w.w\nw.w.w.w."
+countPos :: Pos -> Pos -> Pos
+countPos (row, col) (neighborRow, neighborCol) = ((countRow row neighborRow), (countCol col neighborCol))
+
+--n is a list of nieghbors
+getCaptureMoves :: Board -> Pos -> [Pos] -> [Pos]
+getCaptureMoves b p n = [pos | pos <- map (countPos p) n, isValidPos pos, isEmpty b pos]
+
+getBlackNeighbors :: Board -> Pos -> [Pos]
+getBlackNeighbors b (row, col) = [(x, y) | x <- [(row - 1), (row + 1)], y <- [(col - 1), (col + 1)], isValidPos (x, y), isBlack b (x, y)]
+
+getWhiteFigComplexMoves :: Board -> Pos -> [Pos]
+getWhiteFigComplexMoves b p = getCaptureMoves b p (getBlackNeighbors b p)
+
+getWhiteFigSimpleMoves :: Board -> Pos -> [Pos]
+getWhiteFigSimpleMoves b (row, col) = [(x, y) | x <- [(row - 1)], y <- [(col - 1), (col + 1)], isValidPos (x, y), isEmpty b (x, y)]
+
+getWhiteFigMoves :: Board -> Pos -> [Pos]
+getWhiteFigMoves b p = getWhiteFigSimpleMoves b p ++ getWhiteFigComplexMoves b p
+
+getPossibleMoves :: Board -> Pos -> [(Int,Int)]
+getPossibleMoves b p
+	| isEmpty b p = []
+	| isWhite b p = getWhiteFigMoves b p
+	| isBlack b p = []
+
+b = initBoard ".b.b.b.b\n\
+			  \b.b.b.b.\n\
+			  \...b.b.b\n\
+			  \.b......\n\
+			  \..w.....\n\
+			  \wb..w.w.\n\
+			  \.w.w.w.w\n\
+			  \w.w.w.w."
+
 x = showBoard b
+
+list = getPossibleMoves b (4,2)
