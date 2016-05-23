@@ -78,25 +78,19 @@ isBlack b p = (getFig b p) == B || (getFig b p) == BD
 isValidPos :: Pos -> Bool
 isValidPos (row, col) = (row >= 0) && (row <= 7) && (col >= 0) && (col <= 7)
 
-countIndex :: Int -> Int -> Int
-countIndex index neighborIndex = 2 * neighborIndex - index
-
 countPos :: Pos -> Pos -> Pos
-countPos (row, col) (neighborRow, neighborCol) = ((countIndex row neighborRow), (countIndex col neighborCol))
+countPos (row, col) (neighborRow, neighborCol) = 
+	((countIndex row neighborRow), (countIndex col neighborCol))
+	where
+		countIndex index neighborIndex = 2 * neighborIndex - index
 
 capturedPos :: Pos -> Pos -> Pos
 capturedPos (r1, c1) (r2, c2) = (quot (r1 + r2) 2, quot (c1 + c2) 2) 
 
-makeWhiteFigCaptureMove :: Board -> Pos -> Pos -> Board
-makeWhiteFigCaptureMove b from to = (setFig E (setFig W (setFig E b from) to) (capturedPos from to))
-
-makeBlackFigCaptureMove :: Board -> Pos -> Pos -> Board
-makeBlackFigCaptureMove b from to = (setFig E (setFig B (setFig E b from) to) (capturedPos from to))
-
 makeCaptureMove :: Board -> Pos -> Pos -> Board
 makeCaptureMove b from to
-	| isWhite b from = makeWhiteFigCaptureMove b from to
-	| isBlack b from = makeBlackFigCaptureMove b from to
+	| isWhite b from = (setFig E (setFig W (setFig E b from) to) (capturedPos from to))
+	| isBlack b from = (setFig E (setFig B (setFig E b from) to) (capturedPos from to))
 
 makeSimpleMove :: Board -> Pos -> Pos -> Board
 makeSimpleMove b from to
@@ -106,19 +100,15 @@ makeSimpleMove b from to
 --n is a list of neighbors
 getCaptureMoves :: ((Board, Pos), [Pos]) -> [((Board, Pos), [Pos])]
 getCaptureMoves ((_, _), []) = []
-getCaptureMoves ((b, p), n) = [((makeCaptureMove b p pos, pos), (getNeighbors (makeCaptureMove b p pos) pos)) | pos <- map (countPos p) n, isValidPos pos, isEmpty b pos]
-
-
-getBlackNeighbors :: Board -> Pos -> [Pos]
-getBlackNeighbors b (row, col) = [(x, y) | x <- [(row - 1), (row + 1)], y <- [(col - 1), (col + 1)], isValidPos (x, y), isBlack b (x, y)]
-
-getWhiteNeighbors :: Board -> Pos -> [Pos]
-getWhiteNeighbors b (row, col) = [(x, y) | x <- [(row - 1), (row + 1)], y <- [(col - 1), (col + 1)], isValidPos (x, y), isWhite b (x, y)]
+getCaptureMoves ((b, p), n) = 
+	x ++ concat (map getCaptureMoves x)
+	where
+		x = [((makeCaptureMove b p pos, pos), (getNeighbors (makeCaptureMove b p pos) pos)) | pos <- map (countPos p) n, isValidPos pos, isEmpty b pos]
 
 getNeighbors :: Board -> Pos -> [Pos]
-getNeighbors b p
-	| isWhite b p = getBlackNeighbors b p
-	| isBlack b p = getWhiteNeighbors b p
+getNeighbors b (row, col)
+	| isWhite b (row, col) = [(x, y) | x <- [(row - 1), (row + 1)], y <- [(col - 1), (col + 1)], isValidPos (x, y), isBlack b (x, y)]
+	| isBlack b (row, col) = [(x, y) | x <- [(row - 1), (row + 1)], y <- [(col - 1), (col + 1)], isValidPos (x, y), isWhite b (x, y)]
 
 getComplexMoves :: Board -> Pos -> [(Board, Pos)]
 getComplexMoves b p = map fst (getCaptureMoves ((b, p), (getNeighbors b p)))
@@ -131,8 +121,9 @@ getMoves b p
 	| isEmpty b p = []
 	| otherwise = getSimpleMoves b p ++ getComplexMoves b p
 
+--for debug purposes
 b = initBoard ".b.b.b.b\n\
-			  \b.b.b.b.\n\
+			  \bb.b..b.\n\
 			  \...b.b.b\n\
 			  \.b......\n\
 			  \........\n\
@@ -143,3 +134,5 @@ b = initBoard ".b.b.b.b\n\
 x = showBoard b
 
 list = getMoves b (6,0)
+
+move = showBoard $ fst $ last list
