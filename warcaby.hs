@@ -1,21 +1,23 @@
 import Data.List
 
-data Fig = W | B | WD | BD | E deriving (Show,Eq)
+data Fig = W | B | WK | BK | E deriving (Show,Eq)
 type Pos = (Int, Int)
+type Neighbor = Pos
+type Move = (Board, Pos)
 type Board = [[Fig]]
 
 charToFig :: Char -> Fig
 charToFig 'w' = W
-charToFig 'W' = WD
+charToFig 'W' = WK
 charToFig 'b' = B
-charToFig 'B' = BD
+charToFig 'B' = BK
 charToFig '.' = E
 
 figToChar :: Fig -> Char
 figToChar W = 'w'
-figToChar WD = 'W'
+figToChar WK = 'W'
 figToChar B = 'b'
-figToChar BD = 'B'
+figToChar BK = 'B'
 figToChar E = '.'
 
 fromStr :: String -> [Fig]
@@ -54,11 +56,11 @@ setFig fig (h:t) (row, col) = h : setFig fig t ((row - 1), col)
 
 countWhiteFigs :: Board -> Int
 countWhiteFigs [] = 0
-countWhiteFigs (h:t) = (countWhiteFigs t) + (length (filter (\f -> f == W || f == WD) h))
+countWhiteFigs (h:t) = (countWhiteFigs t) + (length (filter (\f -> f == W || f == WK) h))
 
 countBlackFigs :: Board -> Int
 countBlackFigs [] = 0
-countBlackFigs (h:t) = (countBlackFigs t) + (length (filter (\f -> f == B || f == BD) h))
+countBlackFigs (h:t) = (countBlackFigs t) + (length (filter (\f -> f == B || f == BK) h))
 
 getRow :: Pos -> Int
 getRow p = fst p
@@ -70,10 +72,28 @@ isEmpty :: Board -> Pos -> Bool
 isEmpty b p = (getFig b p) == E
 
 isWhite :: Board -> Pos -> Bool
-isWhite b p = (getFig b p) == W || (getFig b p) == WD
+isWhite b p = 
+	f == W || f == WK
+	where
+		f = getFig b p
 
 isBlack :: Board -> Pos -> Bool
-isBlack b p = (getFig b p) == B || (getFig b p) == BD
+isBlack b p = 
+	f == B || f == BK
+	where
+		f = getFig b p
+
+isPiece :: Board -> Pos -> Bool
+isPiece b p = 
+	f == B || f == W
+	where
+		f = getFig b p
+
+isKing :: Board -> Pos -> Bool
+isKing b p = 
+	f == BK || f == WK
+	where
+		f = getFig b p
 
 isValidPos :: Pos -> Bool
 isValidPos (row, col) = (row >= 0) && (row <= 7) && (col >= 0) && (col <= 7)
@@ -84,13 +104,12 @@ countPos (row, col) (neighborRow, neighborCol) =
 	where
 		countIndex index neighborIndex = 2 * neighborIndex - index
 
-capturedPos :: Pos -> Pos -> Pos
-capturedPos (r1, c1) (r2, c2) = (quot (r1 + r2) 2, quot (c1 + c2) 2) 
-
 makeCaptureMove :: Board -> Pos -> Pos -> Board
 makeCaptureMove b from to
 	| isWhite b from = (setFig E (setFig W (setFig E b from) to) (capturedPos from to))
 	| isBlack b from = (setFig E (setFig B (setFig E b from) to) (capturedPos from to))
+	where
+		capturedPos (r1, c1) (r2, c2) = (quot (r1 + r2) 2, quot (c1 + c2) 2)
 
 makeSimpleMove :: Board -> Pos -> Pos -> Board
 makeSimpleMove b from to
@@ -98,28 +117,39 @@ makeSimpleMove b from to
 	| isBlack b from = setFig B (setFig E b from) to
 
 --n is a list of neighbors
-getCaptureMoves :: ((Board, Pos), [Pos]) -> [((Board, Pos), [Pos])]
+getCaptureMoves :: ((Board, Pos), [Neighbor]) -> [(Move, [Neighbor])]
 getCaptureMoves ((_, _), []) = []
 getCaptureMoves ((b, p), n) = 
 	x ++ concat (map getCaptureMoves x)
 	where
 		x = [((makeCaptureMove b p pos, pos), (getNeighbors (makeCaptureMove b p pos) pos)) | pos <- map (countPos p) n, isValidPos pos, isEmpty b pos]
 
-getNeighbors :: Board -> Pos -> [Pos]
+getNeighbors :: Board -> Pos -> [Neighbor]
 getNeighbors b (row, col)
 	| isWhite b (row, col) = [(x, y) | x <- [(row - 1), (row + 1)], y <- [(col - 1), (col + 1)], isValidPos (x, y), isBlack b (x, y)]
 	| isBlack b (row, col) = [(x, y) | x <- [(row - 1), (row + 1)], y <- [(col - 1), (col + 1)], isValidPos (x, y), isWhite b (x, y)]
 
-getComplexMoves :: Board -> Pos -> [(Board, Pos)]
-getComplexMoves b p = map fst (getCaptureMoves ((b, p), (getNeighbors b p)))
+getPieceComplexMoves :: Board -> Pos -> [Move]
+getPieceComplexMoves b p = map fst (getCaptureMoves ((b, p), (getNeighbors b p)))
 
-getSimpleMoves :: Board -> Pos -> [(Board, Pos)]
-getSimpleMoves b (row, col) = [(makeSimpleMove b (row, col) (x, y), (x, y)) | x <- [(row - 1)], y <- [(col - 1), (col + 1)], isValidPos (x, y), isEmpty b (x, y)]
+getPieceSimpleMoves :: Board -> Pos -> [Move]
+getPieceSimpleMoves b (row, col) = [(makeSimpleMove b (row, col) (x, y), (x, y)) | x <- [(row - 1)], y <- [(col - 1), (col + 1)], isValidPos (x, y), isEmpty b (x, y)]
 
-getMoves :: Board -> Pos -> [(Board, Pos)]
+--getCrossNeighbors :: Board -> Pos -> [Neighbor]
+--getCrossNeighbors b (row, col) = 
+--	getCrossNeighbors b (row - 1, col - 1) ++ getCrossNeighbors b (row - 1, col + 1) ++ getCrossNeighbors b (row + 1, col - 1) ++ getCrossNeighbors b (row + 1, col + 1)
+
+getKingComplexMoves :: Board -> Pos -> [Move]
+getKingComplexMoves b p = []
+
+getKingSimpleMoves :: Board -> Pos -> [Move]
+getKingSimpleMoves b p = []
+
+getMoves :: Board -> Pos -> [Move]
 getMoves b p
 	| isEmpty b p = []
-	| otherwise = getSimpleMoves b p ++ getComplexMoves b p
+	| isPiece b p = getPieceSimpleMoves b p ++ getPieceComplexMoves b p
+	| isKing b p = getKingSimpleMoves b p ++ getKingComplexMoves b p
 
 --for debug purposes
 b = initBoard ".b.b.b.b\n\
@@ -127,7 +157,7 @@ b = initBoard ".b.b.b.b\n\
 			  \...b.b.b\n\
 			  \.b......\n\
 			  \........\n\
-			  \wb..w.w.\n\
+			  \wb..W.w.\n\
 			  \ww.w.w.w\n\
 			  \w.w.w.w."
 
