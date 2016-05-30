@@ -35,10 +35,10 @@ boardToStr b = map toStr [x | x <- b]
 addRowNumber num line = (show num) ++ " " ++ line
 
 addRowNumbers :: [[Char]] -> [[Char]]
-addRowNumbers board = zipWith addRowNumber [1..8] board
+addRowNumbers board = zipWith addRowNumber [0..7] board
 
 addColNumbers :: [[Char]] -> [[Char]]
-addColNumbers board = ["  1 2 3 4 5 6 7 8"] ++ board
+addColNumbers board = ["  0 1 2 3 4 5 6 7"] ++ board
 
 showBoard :: Board -> String
 showBoard board = unlines (addColNumbers (addRowNumbers (boardToStr board)))
@@ -67,6 +67,12 @@ getRow p = fst p
 
 getCol :: Pos -> Int
 getCol p = snd p
+
+isEmptyLine :: Board -> Pos -> Pos -> Bool
+isEmptyLine b p1 p2 = all (isEmpty b) (createLine b p1 p2)
+
+createLine :: Board -> Pos -> Pos -> [Pos]
+createLine b (r1, c1) (r2, c2) = [(x, y) | x <- [(min r1 r2)..(max r1 r2)], y <- [(min c1 c2)..(max c1 c2)], x /= r1, y /= c1, r1 - c1 == x - y || r1 + c1 == x + y]
 
 isEmpty :: Board -> Pos -> Bool
 isEmpty b p = (getFig b p) == E
@@ -135,15 +141,11 @@ getPieceComplexMoves b p = map fst (getCaptureMoves ((b, p), (getNeighbors b p))
 getPieceSimpleMoves :: Board -> Pos -> [Move]
 getPieceSimpleMoves b (row, col) = [(makeSimpleMove b (row, col) (x, y), (x, y)) | x <- [(row - 1)], y <- [(col - 1), (col + 1)], isValidPos (x, y), isEmpty b (x, y)]
 
---getCrossNeighbors :: Board -> Pos -> [Neighbor]
---getCrossNeighbors b (row, col) = 
---	getCrossNeighbors b (row - 1, col - 1) ++ getCrossNeighbors b (row - 1, col + 1) ++ getCrossNeighbors b (row + 1, col - 1) ++ getCrossNeighbors b (row + 1, col + 1)
-
 getKingComplexMoves :: Board -> Pos -> [Move]
 getKingComplexMoves b p = []
 
 getKingSimpleMoves :: Board -> Pos -> [Move]
-getKingSimpleMoves b p = []
+getKingSimpleMoves b (row, col) = [(b, (x, y)) | x <- [0..7], y <- [0..7], row - col == x - y || row + col == x + y, isEmptyLine b (row, col) (x, y)]
 
 getMoves :: Board -> Pos -> [Move]
 getMoves b p
@@ -163,6 +165,6 @@ b = initBoard ".b.b.b.b\n\
 
 x = showBoard b
 
-list = getMoves b (6,0)
+list = getMoves b (5,4)
 
 move = showBoard $ fst $ last list
