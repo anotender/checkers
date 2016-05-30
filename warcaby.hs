@@ -119,10 +119,11 @@ makeCaptureMove b from to
 
 makeSimpleMove :: Board -> Pos -> Pos -> Board
 makeSimpleMove b from to
-	| isWhite b from = setFig W (setFig E b from) to
-	| isBlack b from = setFig B (setFig E b from) to
+	| isPiece b from && isWhite b from = setFig W (setFig E b from) to
+	| isPiece b from && isBlack b from = setFig B (setFig E b from) to
+	| isKing b from && isWhite b from = setFig WK (setFig E b from) to
+	| isKing b from && isBlack b from = setFig BK (setFig E b from) to
 
---n is a list of neighbors
 getCaptureMoves :: ((Board, Pos), [Neighbor]) -> [(Move, [Neighbor])]
 getCaptureMoves ((_, _), []) = []
 getCaptureMoves ((b, p), n) = 
@@ -132,8 +133,10 @@ getCaptureMoves ((b, p), n) =
 
 getNeighbors :: Board -> Pos -> [Neighbor]
 getNeighbors b (row, col)
-	| isWhite b (row, col) = [(x, y) | x <- [(row - 1), (row + 1)], y <- [(col - 1), (col + 1)], isValidPos (x, y), isBlack b (x, y)]
-	| isBlack b (row, col) = [(x, y) | x <- [(row - 1), (row + 1)], y <- [(col - 1), (col + 1)], isValidPos (x, y), isWhite b (x, y)]
+	| isPiece b (row, col) && isWhite b (row, col) = [(x, y) | x <- [(row - 1), (row + 1)], y <- [(col - 1), (col + 1)], isValidPos (x, y), isBlack b (x, y)]
+	| isPiece b (row, col) && isBlack b (row, col) = [(x, y) | x <- [(row - 1), (row + 1)], y <- [(col - 1), (col + 1)], isValidPos (x, y), isWhite b (x, y)]
+	| isKing b (row, col) && isWhite b (row, col) = []
+	| isKing b (row, col) && isBlack b (row, col) = []
 
 getPieceComplexMoves :: Board -> Pos -> [Move]
 getPieceComplexMoves b p = map fst (getCaptureMoves ((b, p), (getNeighbors b p)))
@@ -145,7 +148,7 @@ getKingComplexMoves :: Board -> Pos -> [Move]
 getKingComplexMoves b p = []
 
 getKingSimpleMoves :: Board -> Pos -> [Move]
-getKingSimpleMoves b (row, col) = [(b, (x, y)) | x <- [0..7], y <- [0..7], row - col == x - y || row + col == x + y, isEmptyLine b (row, col) (x, y)]
+getKingSimpleMoves b (row, col) = [((makeSimpleMove b (row, col) (x, y)), (x, y)) | x <- [0..7], y <- [0..7], row - col == x - y || row + col == x + y, isEmptyLine b (row, col) (x, y)]
 
 getMoves :: Board -> Pos -> [Move]
 getMoves b p
@@ -167,4 +170,4 @@ x = showBoard b
 
 list = getMoves b (5,4)
 
-move = showBoard $ fst $ last list
+move = showBoard $ fst $ head list
