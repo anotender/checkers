@@ -110,13 +110,6 @@ countPos (row, col) (neighborRow, neighborCol) =
 	where
 		countIndex index neighborIndex = 2 * neighborIndex - index
 
-makeCaptureMove :: Board -> Pos -> Pos -> Board
-makeCaptureMove b from to
-	| isWhite b from = (setFig E (setFig W (setFig E b from) to) (capturedPos from to))
-	| isBlack b from = (setFig E (setFig B (setFig E b from) to) (capturedPos from to))
-	where
-		capturedPos (r1, c1) (r2, c2) = (quot (r1 + r2) 2, quot (c1 + c2) 2)
-
 makeSimpleMove :: Board -> Pos -> Pos -> Board
 makeSimpleMove b from to
 	| isPiece b from && isWhite b from = setFig W (setFig E b from) to
@@ -124,12 +117,34 @@ makeSimpleMove b from to
 	| isKing b from && isWhite b from = setFig WK (setFig E b from) to
 	| isKing b from && isBlack b from = setFig BK (setFig E b from) to
 
-getCaptureMoves :: ((Board, Pos), [Neighbor]) -> [(Move, [Neighbor])]
-getCaptureMoves ((_, _), []) = []
-getCaptureMoves ((b, p), n) = 
-	x ++ concat (map getCaptureMoves x)
+makePieceCaptureMove :: Board -> Pos -> Pos -> Board
+makePieceCaptureMove b from to
+	| isWhite b from = (setFig E (setFig W (setFig E b from) to) (capturedPos from to))
+	| isBlack b from = (setFig E (setFig B (setFig E b from) to) (capturedPos from to))
 	where
-		x = [((makeCaptureMove b p pos, pos), (getNeighbors (makeCaptureMove b p pos) pos)) | pos <- map (countPos p) n, isValidPos pos, isEmpty b pos]
+		capturedPos (r1, c1) (r2, c2) = (quot (r1 + r2) 2, quot (c1 + c2) 2)
+
+getPieceCaptureMoves :: ((Board, Pos), [Neighbor]) -> [(Move, [Neighbor])]
+getPieceCaptureMoves ((_, _), []) = []
+getPieceCaptureMoves ((b, p), n) = 
+	x ++ concat (map getPieceCaptureMoves x)
+	where
+		x = [((makePieceCaptureMove b p pos, pos), (getNeighbors (makePieceCaptureMove b p pos) pos)) | pos <- map (countPos p) n, isValidPos pos, isEmpty b pos]
+
+makeKingCaptureMove :: Board -> Pos -> Pos -> Board
+makeKingCaptureMove b from to
+	| isWhite b from = (setFig E (setFig WK (setFig E b from) to) capturedPos)
+	| isBlack b from = (setFig E (setFig BK (setFig E b from) to) capturedPos)
+	where
+		capturedPos = head (filter (\p -> containsInTheLine p from to) (getNeighbors b from))
+		containsInTheLine (r, c) (fr, fc) (tr, tc) = r < (max fr tr) && r > (min fr tr) && c < (max fc tc) && c > (min fc tc)
+
+getKingCaptureMoves :: ((Board, Pos), [Neighbor]) -> [(Move, [Neighbor])]
+getKingCaptureMoves ((_, _), []) = []
+getKingCaptureMoves ((b, p), n) = 
+	x ++ concat (map getKingCaptureMoves x)
+	where
+		x = [((makeKingCaptureMove b p pos, pos), (getNeighbors (makeKingCaptureMove b p pos) pos)) | pos <- map (countPos p) n, isValidPos pos, isEmpty b pos]
 
 getNeighbors :: Board -> Pos -> [Neighbor]
 getNeighbors b (row, col)
@@ -143,13 +158,13 @@ getNeighbors b (row, col)
 		hasOnlyOneWhiteEnemy l = length (filter (isWhite b) l) == 1
 
 getPieceComplexMoves :: Board -> Pos -> [Move]
-getPieceComplexMoves b p = map fst (getCaptureMoves ((b, p), (getNeighbors b p)))
+getPieceComplexMoves b p = map fst (getPieceCaptureMoves ((b, p), (getNeighbors b p)))
 
 getPieceSimpleMoves :: Board -> Pos -> [Move]
 getPieceSimpleMoves b (row, col) = [(makeSimpleMove b (row, col) (x, y), (x, y)) | x <- [(row - 1)], y <- [(col - 1), (col + 1)], isValidPos (x, y), isEmpty b (x, y)]
 
 getKingComplexMoves :: Board -> Pos -> [Move]
-getKingComplexMoves b p = []
+getKingComplexMoves b p = map fst (getKingCaptureMoves ((b, p), (getNeighbors b p)))
 
 getKingSimpleMoves :: Board -> Pos -> [Move]
 getKingSimpleMoves b (row, col) = [((makeSimpleMove b (row, col) (x, y)), (x, y)) | x <- [0..7], y <- [0..7], row - col == x - y || row + col == x + y, isEmptyLine b (row, col) (x, y)]
@@ -164,14 +179,14 @@ getMoves b p
 b = initBoard ".b.b.b.b\n\
 			  \bb.b..b.\n\
 			  \...b.b.b\n\
-			  \.b..W...\n\
-			  \........\n\
-			  \wb....w.\n\
-			  \ww.w.w.w\n\
+			  \.b......\n\
+			  \..W.....\n\
+			  \wb.b..w.\n\
+			  \.w.w.w.w\n\
 			  \w.w.w.w."
 
 x = showBoard b
 
-list = getMoves b (5,4)
+list = getMoves b (4,2)
 
-move = showBoard $ fst $ head list
+move = showBoard $ fst $ last list
