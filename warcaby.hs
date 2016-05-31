@@ -133,10 +133,14 @@ getCaptureMoves ((b, p), n) =
 
 getNeighbors :: Board -> Pos -> [Neighbor]
 getNeighbors b (row, col)
+	| isEmpty b (row, col) = []
 	| isPiece b (row, col) && isWhite b (row, col) = [(x, y) | x <- [(row - 1), (row + 1)], y <- [(col - 1), (col + 1)], isValidPos (x, y), isBlack b (x, y)]
 	| isPiece b (row, col) && isBlack b (row, col) = [(x, y) | x <- [(row - 1), (row + 1)], y <- [(col - 1), (col + 1)], isValidPos (x, y), isWhite b (x, y)]
-	| isKing b (row, col) && isWhite b (row, col) = []
-	| isKing b (row, col) && isBlack b (row, col) = []
+	| isKing b (row, col) && isWhite b (row, col) = filter (isBlack b) [(x, y) | x <- [0..7], y <- [0..7], row - col == x - y || row + col == x + y, hasOnlyOneBlackEnemy (createLine b (row, col) (x, y))]
+	| isKing b (row, col) && isBlack b (row, col) = filter (isWhite b) [(x, y) | x <- [0..7], y <- [0..7], row - col == x - y || row + col == x + y, hasOnlyOneWhiteEnemy (createLine b (row, col) (x, y))]
+	where
+		hasOnlyOneBlackEnemy l = length (filter (isBlack b) l) == 1
+		hasOnlyOneWhiteEnemy l = length (filter (isWhite b) l) == 1
 
 getPieceComplexMoves :: Board -> Pos -> [Move]
 getPieceComplexMoves b p = map fst (getCaptureMoves ((b, p), (getNeighbors b p)))
@@ -160,9 +164,9 @@ getMoves b p
 b = initBoard ".b.b.b.b\n\
 			  \bb.b..b.\n\
 			  \...b.b.b\n\
-			  \.b......\n\
+			  \.b..W...\n\
 			  \........\n\
-			  \wb..W.w.\n\
+			  \wb....w.\n\
 			  \ww.w.w.w\n\
 			  \w.w.w.w."
 
