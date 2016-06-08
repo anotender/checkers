@@ -24,10 +24,10 @@ fromStr :: String -> [Fig]
 fromStr str = map charToFig str
 
 toStr :: [Fig] -> String
-toStr l = intersperse ' ' (map figToChar l)
+toStr l = intersperse ' ' $ map figToChar l
 
 initBoard :: String -> Board
-initBoard str = map fromStr (lines str)
+initBoard str = map fromStr $ lines str
 
 boardToStr :: Board -> [String]
 boardToStr b = map toStr [x | x <- b]
@@ -55,12 +55,10 @@ setFig fig (h:t) (0, col) = replaceWithFig fig h col : t
 setFig fig (h:t) (row, col) = h : setFig fig t ((row - 1), col)
 
 countWhiteFigs :: Board -> Int
-countWhiteFigs [] = 0
-countWhiteFigs (h:t) = (countWhiteFigs t) + (length (filter (\f -> f == W || f == WK) h))
+countWhiteFigs b = foldl (\acc x -> if (x == W || x == WK) then acc + 1 else acc) 0 (concat b)
 
 countBlackFigs :: Board -> Int
-countBlackFigs [] = 0
-countBlackFigs (h:t) = (countBlackFigs t) + (length (filter (\f -> f == B || f == BK) h))
+countBlackFigs b = foldl (\acc x -> if (x == B || x == BK) then acc + 1 else acc) 0 (concat b)
 
 getRow :: Pos -> Int
 getRow p = fst p
@@ -125,9 +123,9 @@ makePieceCaptureMove b from to
 		capturedPos (r1, c1) (r2, c2) = (quot (r1 + r2) 2, quot (c1 + c2) 2)
 
 getPieceCaptureMoves :: ((Board, Pos), [Neighbor]) -> [(Move, [Neighbor])]
-getPieceCaptureMoves ((_, _), []) = []
+getPieceCaptureMoves (_, []) = []
 getPieceCaptureMoves ((b, p), n) = 
-	x ++ concat (map getPieceCaptureMoves x)
+	x ++ concatMap getPieceCaptureMoves x
 	where
 		x = [((makePieceCaptureMove b p pos, pos), (getNeighbors (makePieceCaptureMove b p pos) pos)) | pos <- map (countPos p) n, isValidPos pos, isEmpty b pos]
 
@@ -140,9 +138,9 @@ makeKingCaptureMove b from to
 		containsInTheLine (r, c) (fr, fc) (tr, tc) = r < (max fr tr) && r > (min fr tr) && c < (max fc tc) && c > (min fc tc)
 
 getKingCaptureMoves :: ((Board, Pos), [Neighbor]) -> [(Move, [Neighbor])]
-getKingCaptureMoves ((_, _), []) = []
+getKingCaptureMoves (_, []) = []
 getKingCaptureMoves ((b, p), n) = 
-	x ++ concat (map getKingCaptureMoves x)
+	x ++ concatMap getKingCaptureMoves x
 	where
 		x = [((makeKingCaptureMove b p pos, pos), (getNeighbors (makeKingCaptureMove b p pos) pos)) | pos <- map (countPos p) n, isValidPos pos, isEmpty b pos]
 
@@ -167,7 +165,7 @@ getKingComplexMoves :: Board -> Pos -> [Move]
 getKingComplexMoves b p = map fst (getKingCaptureMoves ((b, p), (getNeighbors b p)))
 
 getKingSimpleMoves :: Board -> Pos -> [Move]
-getKingSimpleMoves b (row, col) = [((makeSimpleMove b (row, col) (x, y)), (x, y)) | x <- [0..7], y <- [0..7], row - col == x - y || row + col == x + y, isEmptyLine b (row, col) (x, y)]
+getKingSimpleMoves b (row, col) = [(makeSimpleMove b (row, col) (x, y), (x, y)) | x <- [0..7], y <- [0..7], row - col == x - y || row + col == x + y, isEmptyLine b (row, col) (x, y)]
 
 getMoves :: Board -> Pos -> [Move]
 getMoves b p
@@ -179,14 +177,14 @@ getMoves b p
 b = initBoard ".b.b.b.b\n\
 			  \bb.b..b.\n\
 			  \...b.b.b\n\
-			  \.b......\n\
-			  \..W.....\n\
+			  \.b.W....\n\
+			  \........\n\
 			  \wb.b..w.\n\
 			  \.w.w.w.w\n\
 			  \w.w.w.w."
 
 x = showBoard b
 
-list = getMoves b (4,2)
+list = getMoves b (3,3)
 
 move = showBoard $ fst $ last list
