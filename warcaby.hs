@@ -30,21 +30,21 @@ initBoard :: String -> Board
 initBoard str = map fromStr $ lines str
 
 boardToStr :: Board -> [String]
-boardToStr b = map toStr [x | x <- b]
+boardToStr b = map toStr b
 
 addRowNumber num line = (show num) ++ " " ++ line
 
 addRowNumbers :: [[Char]] -> [[Char]]
-addRowNumbers board = zipWith addRowNumber [0..7] board
+addRowNumbers b = zipWith addRowNumber [0..7] b
 
 addColNumbers :: [[Char]] -> [[Char]]
-addColNumbers board = ["  0 1 2 3 4 5 6 7"] ++ board
+addColNumbers b = ["  0 1 2 3 4 5 6 7"] ++ b
 
 showBoard :: Board -> String
-showBoard board = unlines (addColNumbers (addRowNumbers (boardToStr board)))
+showBoard b = unlines $ addColNumbers $ addRowNumbers $ map toStr b
 
 getFig :: Board -> Pos -> Fig
-getFig board (row, col) = board !! row !! col
+getFig b (row, col) = b !! row !! col
 
 replaceWithFig :: Fig -> [Fig] -> Int -> [Fig]
 replaceWithFig fig (h:t) 0 = fig : t
@@ -106,7 +106,7 @@ countPos :: Pos -> Pos -> Pos
 countPos (row, col) (neighborRow, neighborCol) = 
 	((countIndex row neighborRow), (countIndex col neighborCol))
 	where
-		countIndex index neighborIndex = 2 * neighborIndex - index
+		countIndex index neighborIndex = neighborIndex + signum (neighborIndex - index)
 
 makeSimpleMove :: Board -> Pos -> Pos -> Board
 makeSimpleMove b from to
@@ -177,14 +177,14 @@ getMoves b p
 b = initBoard ".b.b.b.b\n\
 			  \bb.b..b.\n\
 			  \...b.b.b\n\
-			  \.b.W....\n\
+			  \.b......\n\
 			  \........\n\
-			  \wb.b..w.\n\
+			  \wb.b..W.\n\
 			  \.w.w.w.w\n\
 			  \w.w.w.w."
 
 x = showBoard b
 
-list = getMoves b (3,3)
+list = getMoves b (5,6)
 
 move = showBoard $ fst $ last list
