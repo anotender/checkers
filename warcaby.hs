@@ -61,12 +61,6 @@ countWhiteFigs b = foldl (\acc x -> if (x == W || x == WK) then acc + 1 else acc
 countBlackFigs :: Board -> Int
 countBlackFigs b = foldl (\acc x -> if (x == B || x == BK) then acc + 1 else acc) 0 (concat b)
 
-getRow :: Pos -> Int
-getRow p = fst p
-
-getCol :: Pos -> Int
-getCol p = snd p
-
 isEmptyLine :: Board -> Pos -> Pos -> Bool
 isEmptyLine b p1 p2 = all (isEmpty b) (createLine b p1 p2)
 
