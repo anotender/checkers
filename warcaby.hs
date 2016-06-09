@@ -32,12 +32,13 @@ initBoard str = map fromStr $ lines str
 boardToStr :: Board -> [String]
 boardToStr b = map toStr b
 
+addRowNumber :: (Show a) => a -> String -> String
 addRowNumber num line = (show num) ++ " " ++ line
 
-addRowNumbers :: [[Char]] -> [[Char]]
+addRowNumbers :: [String] -> [String]
 addRowNumbers b = zipWith addRowNumber [0..7] b
 
-addColNumbers :: [[Char]] -> [[Char]]
+addColNumbers :: [String] -> [String]
 addColNumbers b = ["  0 1 2 3 4 5 6 7"] ++ b
 
 showBoard :: Board -> String
@@ -76,28 +77,16 @@ isEmpty :: Board -> Pos -> Bool
 isEmpty b p = (getFig b p) == E
 
 isWhite :: Board -> Pos -> Bool
-isWhite b p = 
-	f == W || f == WK
-	where
-		f = getFig b p
+isWhite b p = f == W || f == WK where f = getFig b p
 
 isBlack :: Board -> Pos -> Bool
-isBlack b p = 
-	f == B || f == BK
-	where
-		f = getFig b p
+isBlack b p = f == B || f == BK where f = getFig b p
 
 isPiece :: Board -> Pos -> Bool
-isPiece b p = 
-	f == B || f == W
-	where
-		f = getFig b p
+isPiece b p = f == B || f == W where f = getFig b p
 
 isKing :: Board -> Pos -> Bool
-isKing b p = 
-	f == BK || f == WK
-	where
-		f = getFig b p
+isKing b p = f == BK || f == WK where f = getFig b p
 
 isValidPos :: Pos -> Bool
 isValidPos (row, col) = (row >= 0) && (row <= 7) && (col >= 0) && (col <= 7)
@@ -109,17 +98,13 @@ countPos (row, col) (neighborRow, neighborCol) =
 		countIndex index neighborIndex = neighborIndex + signum (neighborIndex - index)
 
 makeSimpleMove :: Board -> Pos -> Pos -> Board
-makeSimpleMove b from to
-	| isPiece b from && isWhite b from = setFig W (setFig E b from) to
-	| isPiece b from && isBlack b from = setFig B (setFig E b from) to
-	| isKing b from && isWhite b from = setFig WK (setFig E b from) to
-	| isKing b from && isBlack b from = setFig BK (setFig E b from) to
+makeSimpleMove b from to = setFig f (setFig E b from) to where f = getFig b from
 
 makePieceCaptureMove :: Board -> Pos -> Pos -> Board
-makePieceCaptureMove b from to
-	| isWhite b from = (setFig E (setFig W (setFig E b from) to) (capturedPos from to))
-	| isBlack b from = (setFig E (setFig B (setFig E b from) to) (capturedPos from to))
+makePieceCaptureMove b from to = 
+	(setFig E (setFig f (setFig E b from) to) (capturedPos from to))
 	where
+		f = getFig b from
 		capturedPos (r1, c1) (r2, c2) = (quot (r1 + r2) 2, quot (c1 + c2) 2)
 
 getPieceCaptureMoves :: ((Board, Pos), [Neighbor]) -> [(Move, [Neighbor])]
@@ -130,10 +115,10 @@ getPieceCaptureMoves ((b, p), n) =
 		x = [((makePieceCaptureMove b p pos, pos), (getNeighbors (makePieceCaptureMove b p pos) pos)) | pos <- map (countPos p) n, isValidPos pos, isEmpty b pos]
 
 makeKingCaptureMove :: Board -> Pos -> Pos -> Board
-makeKingCaptureMove b from to
-	| isWhite b from = (setFig E (setFig WK (setFig E b from) to) capturedPos)
-	| isBlack b from = (setFig E (setFig BK (setFig E b from) to) capturedPos)
+makeKingCaptureMove b from to = 
+	(setFig E (setFig f (setFig E b from) to) capturedPos)
 	where
+		f = getFig b from
 		capturedPos = head (filter (\p -> containsInTheLine p from to) (getNeighbors b from))
 		containsInTheLine (r, c) (fr, fc) (tr, tc) = r < (max fr tr) && r > (min fr tr) && c < (max fc tc) && c > (min fc tc)
 
