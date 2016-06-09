@@ -1,9 +1,12 @@
 import Data.List
+import Data.Tree
 
 data Fig = W | B | WK | BK | E deriving (Show,Eq)
 type Pos = (Int, Int)
 type Neighbor = Pos
+type Neighbors = [Neighbor]
 type Move = (Board, Pos)
+type Moves = [Move]
 type Board = [[Fig]]
 
 charToFig :: Char -> Fig
@@ -101,7 +104,7 @@ makePieceCaptureMove b from to =
 		f = getFig b from
 		capturedPos (r1, c1) (r2, c2) = (quot (r1 + r2) 2, quot (c1 + c2) 2)
 
-getPieceCaptureMoves :: ((Board, Pos), [Neighbor]) -> [(Move, [Neighbor])]
+getPieceCaptureMoves :: (Move, Neighbors) -> [(Move, Neighbors)]
 getPieceCaptureMoves (_, []) = []
 getPieceCaptureMoves ((b, p), n) = 
 	x ++ concatMap getPieceCaptureMoves x
@@ -116,14 +119,14 @@ makeKingCaptureMove b from to =
 		capturedPos = head (filter (\p -> containsInTheLine p from to) (getNeighbors b from))
 		containsInTheLine (r, c) (fr, fc) (tr, tc) = r < (max fr tr) && r > (min fr tr) && c < (max fc tc) && c > (min fc tc)
 
-getKingCaptureMoves :: ((Board, Pos), [Neighbor]) -> [(Move, [Neighbor])]
+getKingCaptureMoves :: (Move, Neighbors) -> [(Move, Neighbors)]
 getKingCaptureMoves (_, []) = []
 getKingCaptureMoves ((b, p), n) = 
 	x ++ concatMap getKingCaptureMoves x
 	where
 		x = [((makeKingCaptureMove b p pos, pos), (getNeighbors (makeKingCaptureMove b p pos) pos)) | pos <- map (countPos p) n, isValidPos pos, isEmpty b pos]
 
-getNeighbors :: Board -> Pos -> [Neighbor]
+getNeighbors :: Board -> Pos -> Neighbors
 getNeighbors b (row, col)
 	| isEmpty b (row, col) = []
 	| isPiece b (row, col) && isWhite b (row, col) = [(x, y) | x <- [(row - 1), (row + 1)], y <- [(col - 1), (col + 1)], isValidPos (x, y), isBlack b (x, y)]
@@ -134,23 +137,26 @@ getNeighbors b (row, col)
 		hasOnlyOneBlackEnemy l = length (filter (isBlack b) l) == 1
 		hasOnlyOneWhiteEnemy l = length (filter (isWhite b) l) == 1
 
-getPieceComplexMoves :: Board -> Pos -> [Move]
+getPieceComplexMoves :: Board -> Pos -> Moves
 getPieceComplexMoves b p = map fst (getPieceCaptureMoves ((b, p), (getNeighbors b p)))
 
-getPieceSimpleMoves :: Board -> Pos -> [Move]
-getPieceSimpleMoves b (row, col) = [(makeSimpleMove b (row, col) (x, y), (x, y)) | x <- [(row - 1)], y <- [(col - 1), (col + 1)], isValidPos (x, y), isEmpty b (x, y)]
+getPieceSimpleMoves :: Board -> Pos -> Moves
+getPieceSimpleMoves b (row, col) = [(makeSimpleMove b (row, col) (x, y), (x, y)) | x <- [if isWhite b (row, col) then (row - 1) else (row + 1)], y <- [(col - 1), (col + 1)], isValidPos (x, y), isEmpty b (x, y)]
 
-getKingComplexMoves :: Board -> Pos -> [Move]
+getKingComplexMoves :: Board -> Pos -> Moves
 getKingComplexMoves b p = map fst (getKingCaptureMoves ((b, p), (getNeighbors b p)))
 
-getKingSimpleMoves :: Board -> Pos -> [Move]
+getKingSimpleMoves :: Board -> Pos -> Moves
 getKingSimpleMoves b (row, col) = [(makeSimpleMove b (row, col) (x, y), (x, y)) | x <- [0..7], y <- [0..7], row - col == x - y || row + col == x + y, isEmptyLine b (row, col) (x, y)]
 
-getMoves :: Board -> Pos -> [Move]
+getMoves :: Board -> Pos -> Moves
 getMoves b p
 	| isEmpty b p = []
 	| isPiece b p = getPieceSimpleMoves b p ++ getPieceComplexMoves b p
 	| isKing b p = getKingSimpleMoves b p ++ getKingComplexMoves b p
+
+--genGameTree :: Board -> Tree Board
+--genGameTree b = Node b [genGameTree b]
 
 --for debug purposes
 b = initBoard ".b.b.b.b\n\
@@ -164,6 +170,6 @@ b = initBoard ".b.b.b.b\n\
 
 x = showBoard b
 
-list = getMoves b (5,6)
+list = getMoves b (2,3)
 
 move = showBoard $ fst $ last list
