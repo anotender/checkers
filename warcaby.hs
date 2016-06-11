@@ -1,6 +1,7 @@
 import Data.List
 import Data.Tree
 import Data.Maybe
+import Data.Ord
 
 data Fig = W | B | WK | BK | E deriving (Show, Eq)
 data Player = WhitePlayer | BlackPlayer deriving (Show, Eq)
@@ -194,8 +195,20 @@ pvp BlackPlayer b = do
 			else pvp WhitePlayer (fst (extractMove (snd m) (getMoves b (fst m))))
 		else putStrLn "Wrong move" >> pvp BlackPlayer b
 
-pve = do
-	putStrLn "TODO"
+pve WhitePlayer b = do
+	putStrLn "Player move"
+	putStr $ showBoard b
+	m <- takeMove
+	if (isWhite b (fst m)) && (isValidMove b (fst m) (snd m)) 
+		then if (countWhiteFigs (fst (extractMove (snd m) (getMoves b (fst m))))) == 0
+			then putStrLn "Player won"
+			else pve BlackPlayer (fst (extractMove (snd m) (getMoves b (fst m))))
+		else putStrLn "Wrong move" >> pve WhitePlayer b
+
+pve BlackPlayer b = do
+	let moves = [getMoves b (row, col) | row <- [0..7], col <- [0..7], isBlack b (row, col)]
+	let bestMove = last $ maximumBy (comparing length) moves
+	pve WhitePlayer (fst bestMove)
 
 takeMove = do
 	putStr "from: "
@@ -207,3 +220,5 @@ takeMove = do
 takePos = do
 	pos <- fmap read getLine :: IO Int
 	return (quot pos 10, mod pos 10)
+
+m = [getMoves initialBoard (row, col) | row <- [0..7], col <- [0..7], isBlack initialBoard (row, col)]
