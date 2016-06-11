@@ -1,7 +1,9 @@
 import Data.List
 import Data.Tree
+import Data.Maybe
 
-data Fig = W | B | WK | BK | E deriving (Show,Eq)
+data Fig = W | B | WK | BK | E deriving (Show, Eq)
+data Player = WhitePlayer | BlackPlayer deriving (Show, Eq)
 type Pos = (Int, Int)
 type Neighbor = Pos
 type Neighbors = [Neighbor]
@@ -88,6 +90,9 @@ isKing b p = f == BK || f == WK where f = getFig b p
 isValidPos :: Pos -> Bool
 isValidPos (row, col) = (row >= 0) && (row <= 7) && (col >= 0) && (col <= 7)
 
+isValidMove :: Board -> Pos -> Pos -> Bool
+isValidMove b from to = (isValidPos to) && (elem to (map snd $ getMoves b from))
+
 countPos :: Pos -> Pos -> Pos
 countPos (row, col) (neighborRow, neighborCol) = 
 	((countIndex row neighborRow), (countIndex col neighborCol))
@@ -131,11 +136,11 @@ getNeighbors b (row, col)
 	| isEmpty b (row, col) = []
 	| isPiece b (row, col) && isWhite b (row, col) = [(x, y) | x <- [(row - 1), (row + 1)], y <- [(col - 1), (col + 1)], isValidPos (x, y), isBlack b (x, y)]
 	| isPiece b (row, col) && isBlack b (row, col) = [(x, y) | x <- [(row - 1), (row + 1)], y <- [(col - 1), (col + 1)], isValidPos (x, y), isWhite b (x, y)]
-	| isKing b (row, col) && isWhite b (row, col) = filter (isBlack b) [(x, y) | x <- [0..7], y <- [0..7], row - col == x - y || row + col == x + y, hasOnlyOneBlackEnemy (createLine b (row, col) (x, y))]
-	| isKing b (row, col) && isBlack b (row, col) = filter (isWhite b) [(x, y) | x <- [0..7], y <- [0..7], row - col == x - y || row + col == x + y, hasOnlyOneWhiteEnemy (createLine b (row, col) (x, y))]
+	| isKing b (row, col) && isWhite b (row, col) = filter (isBlack b) [(x, y) | x <- [0..7], y <- [0..7], row - col == x - y || row + col == x + y, hasOnlyWhitePlayerBlackPlayerEnemy (createLine b (row, col) (x, y))]
+	| isKing b (row, col) && isBlack b (row, col) = filter (isWhite b) [(x, y) | x <- [0..7], y <- [0..7], row - col == x - y || row + col == x + y, hasOnlyWhitePlayerWhitePlayerEnemy (createLine b (row, col) (x, y))]
 	where
-		hasOnlyOneBlackEnemy l = length (filter (isBlack b) l) == 1
-		hasOnlyOneWhiteEnemy l = length (filter (isWhite b) l) == 1
+		hasOnlyWhitePlayerBlackPlayerEnemy l = length (filter (isBlack b) l) == 1
+		hasOnlyWhitePlayerWhitePlayerEnemy l = length (filter (isWhite b) l) == 1
 
 getPieceComplexMoves :: Board -> Pos -> Moves
 getPieceComplexMoves b p = map fst (getPieceCaptureMoves ((b, p), (getNeighbors b p)))
@@ -155,21 +160,50 @@ getMoves b p
 	| isPiece b p = getPieceSimpleMoves b p ++ getPieceComplexMoves b p
 	| isKing b p = getKingSimpleMoves b p ++ getKingComplexMoves b p
 
---genGameTree :: Board -> Tree Board
---genGameTree b = Node b [genGameTree b]
+extractMove :: Pos -> Moves -> Move
+extractMove p m = m !! fromJust (elemIndex p $ map snd m)
 
---for debug purposes
-b = initBoard ".b.b.b.b\n\
-			  \bb.b..b.\n\
-			  \...b.b.b\n\
-			  \.b......\n\
-			  \........\n\
-			  \wb.b..W.\n\
-			  \.w.w.w.w\n\
-			  \w.w.w.w."
+initialBoardStr = ".b.b.b.b\n\
+				  \b.b.b.b.\n\
+				  \.b.b.b.b\n\
+				  \........\n\
+				  \........\n\
+				  \w.w.w.w.\n\
+				  \.w.w.w.w\n\
+				  \w.w.w.w."
 
-x = showBoard b
+initialBoard = initBoard initialBoardStr
 
-list = getMoves b (2,3)
+pvp WhitePlayer b = do
+	putStrLn "First player move"
+	putStr $ showBoard b
+	m <- takeMove
+	if (isWhite b (fst m)) && (isValidMove b (fst m) (snd m)) 
+		then if (countWhiteFigs (fst (extractMove (snd m) (getMoves b (fst m))))) == 0
+			then putStrLn "First player won"
+			else pvp BlackPlayer (fst (extractMove (snd m) (getMoves b (fst m))))
+		else putStrLn "Wrong move" >> pvp WhitePlayer b
 
-move = showBoard $ fst $ last list
+pvp BlackPlayer b = do
+	putStrLn "Second player move"
+	putStr $ showBoard b
+	m <- takeMove
+	if (isBlack b (fst m)) && (isValidMove b (fst m) (snd m)) 
+		then if (countWhiteFigs (fst (extractMove (snd m) (getMoves b (fst m))))) == 0
+			then putStrLn "Second player won"
+			else pvp WhitePlayer (fst (extractMove (snd m) (getMoves b (fst m))))
+		else putStrLn "Wrong move" >> pvp BlackPlayer b
+
+pve = do
+	putStrLn "TODO"
+
+takeMove = do
+	putStr "from: "
+	from <- takePos
+	putStr "to: "
+	to <- takePos
+	return (from, to)
+
+takePos = do
+	pos <- fmap read getLine :: IO Int
+	return (quot pos 10, mod pos 10)
