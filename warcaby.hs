@@ -164,16 +164,14 @@ getMoves b p
 extractMove :: Pos -> Moves -> Move
 extractMove p m = m !! fromJust (elemIndex p $ map snd m)
 
-initialBoardStr = ".b.b.b.b\n\
-				  \b.b.b.b.\n\
-				  \.b.b.b.b\n\
-				  \........\n\
-				  \........\n\
-				  \w.w.w.w.\n\
-				  \.w.w.w.w\n\
-				  \w.w.w.w."
-
-initialBoard = initBoard initialBoardStr
+menu b = do
+	putStr "1. pvp\n2. pve\n3. quit\n> "
+	choice <- getLine
+	case choice of 
+		"1" -> pvp WhitePlayer b
+		"2" -> pve WhitePlayer b
+		"3" -> return ()
+		otherwise -> menu b
 
 pvp WhitePlayer b = do
 	putStrLn "First player move"
@@ -222,3 +220,15 @@ takeMove = do
 takePos = do
 	pos <- fmap read getLine :: IO Int
 	return (quot pos 10, mod pos 10)
+
+--for debug
+initialBoardStr = ".b.b.b.b\n\
+				  \b.b.b.b.\n\
+				  \.b.b.b.b\n\
+				  \........\n\
+				  \........\n\
+				  \w.w.w.w.\n\
+				  \.w.w.w.w\n\
+				  \w.w.w.w."
+
+initialBoard = initBoard initialBoardStr
