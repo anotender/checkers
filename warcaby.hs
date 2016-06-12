@@ -207,8 +207,10 @@ pve WhitePlayer b = do
 
 pve BlackPlayer b = do
 	let moves = [getMoves b (row, col) | row <- [0..7], col <- [0..7], isBlack b (row, col)]
-	let bestMove = last $ maximumBy (comparing length) moves
-	pve WhitePlayer (fst bestMove)
+	let bestBoard = minimumBy (comparing countWhiteFigs) $ concatMap (map fst) moves
+	if countWhiteFigs bestBoard == 0
+		then putStrLn "Computer won"
+		else pve WhitePlayer bestBoard
 
 takeMove = do
 	putStr "from: "
@@ -220,5 +222,3 @@ takeMove = do
 takePos = do
 	pos <- fmap read getLine :: IO Int
 	return (quot pos 10, mod pos 10)
-
-m = [getMoves initialBoard (row, col) | row <- [0..7], col <- [0..7], isBlack initialBoard (row, col)]
