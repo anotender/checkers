@@ -3,7 +3,7 @@ import Data.Tree
 import Data.Maybe
 import Data.Ord
 
-data Fig = W | B | WK | BK | E deriving (Show, Eq)
+data Fig = W | B | WQ | BQ | E deriving (Show, Eq)
 data Player = WhitePlayer | BlackPlayer deriving (Show, Eq)
 type Pos = (Int, Int)
 type Neighbor = Pos
@@ -14,16 +14,16 @@ type Board = [[Fig]]
 
 charToFig :: Char -> Fig
 charToFig 'w' = W
-charToFig 'W' = WK
+charToFig 'W' = WQ
 charToFig 'b' = B
-charToFig 'B' = BK
+charToFig 'B' = BQ
 charToFig '.' = E
 
 figToChar :: Fig -> Char
 figToChar W = 'w'
-figToChar WK = 'W'
+figToChar WQ = 'W'
 figToChar B = 'b'
-figToChar BK = 'B'
+figToChar BQ = 'B'
 figToChar E = '.'
 
 fromStr :: String -> [Fig]
@@ -62,10 +62,10 @@ setFig fig (h:t) (0, col) = replaceWithFig fig h col : t
 setFig fig (h:t) (row, col) = h : setFig fig t ((row - 1), col)
 
 countWhiteFigs :: Board -> Int
-countWhiteFigs b = foldl (\acc x -> if (x == W || x == WK) then acc + 1 else acc) 0 (concat b)
+countWhiteFigs b = foldl (\acc x -> if (x == W || x == WQ) then acc + 1 else acc) 0 (concat b)
 
 countBlackFigs :: Board -> Int
-countBlackFigs b = foldl (\acc x -> if (x == B || x == BK) then acc + 1 else acc) 0 (concat b)
+countBlackFigs b = foldl (\acc x -> if (x == B || x == BQ) then acc + 1 else acc) 0 (concat b)
 
 isEmptyLine :: Board -> Pos -> Pos -> Bool
 isEmptyLine b p1 p2 = all (isEmpty b) (createLine b p1 p2)
@@ -77,16 +77,16 @@ isEmpty :: Board -> Pos -> Bool
 isEmpty b p = (getFig b p) == E
 
 isWhite :: Board -> Pos -> Bool
-isWhite b p = f == W || f == WK where f = getFig b p
+isWhite b p = f == W || f == WQ where f = getFig b p
 
 isBlack :: Board -> Pos -> Bool
-isBlack b p = f == B || f == BK where f = getFig b p
+isBlack b p = f == B || f == BQ where f = getFig b p
 
 isPiece :: Board -> Pos -> Bool
 isPiece b p = f == B || f == W where f = getFig b p
 
-isKing :: Board -> Pos -> Bool
-isKing b p = f == BK || f == WK where f = getFig b p
+isQueen :: Board -> Pos -> Bool
+isQueen b p = f == BQ || f == WQ where f = getFig b p
 
 isValidPos :: Pos -> Bool
 isValidPos (row, col) = (row >= 0) && (row <= 7) && (col >= 0) && (col <= 7)
@@ -117,31 +117,38 @@ getPieceCaptureMoves ((b, p), n) =
 	where
 		x = [((makePieceCaptureMove b p pos, pos), (getNeighbors (makePieceCaptureMove b p pos) pos)) | pos <- map (countPos p) n, isValidPos pos, isEmpty b pos]
 
-makeKingCaptureMove :: Board -> Pos -> Pos -> Board
-makeKingCaptureMove b from to = 
+makeQueenCaptureMove :: Board -> Pos -> Pos -> Board
+makeQueenCaptureMove b from to = 
 	(setFig E (setFig f (setFig E b from) to) capturedPos)
 	where
 		f = getFig b from
 		capturedPos = head (filter (\p -> containsInTheLine p from to) (getNeighbors b from))
 		containsInTheLine (r, c) (fr, fc) (tr, tc) = r < (max fr tr) && r > (min fr tr) && c < (max fc tc) && c > (min fc tc)
 
-getKingCaptureMoves :: (Move, Neighbors) -> [(Move, Neighbors)]
-getKingCaptureMoves (_, []) = []
-getKingCaptureMoves ((b, p), n) = 
-	x ++ concatMap getKingCaptureMoves x
+getQueenCaptureMoves :: (Move, Neighbors) -> [(Move, Neighbors)]
+getQueenCaptureMoves (_, []) = []
+getQueenCaptureMoves ((b, p), n) = 
+	x ++ concatMap getQueenCaptureMoves x
 	where
-		x = [((makeKingCaptureMove b p pos, pos), (getNeighbors (makeKingCaptureMove b p pos) pos)) | pos <- map (countPos p) n, isValidPos pos, isEmpty b pos]
+		x = [((makeQueenCaptureMove b p pos, pos), (getNeighbors (makeQueenCaptureMove b p pos) pos)) | pos <- map (countPos p) n, isValidPos pos, isEmpty b pos]
 
 getNeighbors :: Board -> Pos -> Neighbors
 getNeighbors b (row, col)
 	| isEmpty b (row, col) = []
 	| isPiece b (row, col) && isWhite b (row, col) = [(x, y) | x <- [(row - 1), (row + 1)], y <- [(col - 1), (col + 1)], isValidPos (x, y), isBlack b (x, y)]
 	| isPiece b (row, col) && isBlack b (row, col) = [(x, y) | x <- [(row - 1), (row + 1)], y <- [(col - 1), (col + 1)], isValidPos (x, y), isWhite b (x, y)]
-	| isKing b (row, col) && isWhite b (row, col) = filter (isBlack b) [(x, y) | x <- [0..7], y <- [0..7], row - col == x - y || row + col == x + y, hasOnlyWhitePlayerBlackPlayerEnemy (createLine b (row, col) (x, y))]
-	| isKing b (row, col) && isBlack b (row, col) = filter (isWhite b) [(x, y) | x <- [0..7], y <- [0..7], row - col == x - y || row + col == x + y, hasOnlyWhitePlayerWhitePlayerEnemy (createLine b (row, col) (x, y))]
+	| isQueen b (row, col) && isWhite b (row, col) = filter (isBlack b) [(x, y) | x <- [0..7], y <- [0..7], row - col == x - y || row + col == x + y, hasOnlyWhitePlayerBlackPlayerEnemy (createLine b (row, col) (x, y))]
+	| isQueen b (row, col) && isBlack b (row, col) = filter (isWhite b) [(x, y) | x <- [0..7], y <- [0..7], row - col == x - y || row + col == x + y, hasOnlyWhitePlayerWhitePlayerEnemy (createLine b (row, col) (x, y))]
 	where
 		hasOnlyWhitePlayerBlackPlayerEnemy l = length (filter (isBlack b) l) == 1
 		hasOnlyWhitePlayerWhitePlayerEnemy l = length (filter (isWhite b) l) == 1
+
+promote :: Board -> Board
+promote b = 
+	promoteBlack (promoteWhite b)
+	where 
+		promoteWhite b = [foldl (\acc x -> if (x == W) then acc ++ [WQ] else acc ++ [x]) [] (head b)] ++ (tail b)
+		promoteBlack b = (init b) ++ [foldl (\acc x -> if (x == B) then acc ++ [BQ] else acc ++ [x]) [] (last b)]
 
 getPieceComplexMoves :: Board -> Pos -> Moves
 getPieceComplexMoves b p = map fst (getPieceCaptureMoves ((b, p), (getNeighbors b p)))
@@ -149,17 +156,17 @@ getPieceComplexMoves b p = map fst (getPieceCaptureMoves ((b, p), (getNeighbors 
 getPieceSimpleMoves :: Board -> Pos -> Moves
 getPieceSimpleMoves b (row, col) = [(makeSimpleMove b (row, col) (x, y), (x, y)) | x <- [if isWhite b (row, col) then (row - 1) else (row + 1)], y <- [(col - 1), (col + 1)], isValidPos (x, y), isEmpty b (x, y)]
 
-getKingComplexMoves :: Board -> Pos -> Moves
-getKingComplexMoves b p = map fst (getKingCaptureMoves ((b, p), (getNeighbors b p)))
+getQueenComplexMoves :: Board -> Pos -> Moves
+getQueenComplexMoves b p = map fst (getQueenCaptureMoves ((b, p), (getNeighbors b p)))
 
-getKingSimpleMoves :: Board -> Pos -> Moves
-getKingSimpleMoves b (row, col) = [(makeSimpleMove b (row, col) (x, y), (x, y)) | x <- [0..7], y <- [0..7], row - col == x - y || row + col == x + y, isEmptyLine b (row, col) (x, y)]
+getQueenSimpleMoves :: Board -> Pos -> Moves
+getQueenSimpleMoves b (row, col) = [(makeSimpleMove b (row, col) (x, y), (x, y)) | x <- [0..7], y <- [0..7], row - col == x - y || row + col == x + y, isEmptyLine b (row, col) (x, y)]
 
 getMoves :: Board -> Pos -> Moves
 getMoves b p
 	| isEmpty b p = []
-	| isPiece b p = getPieceSimpleMoves b p ++ getPieceComplexMoves b p
-	| isKing b p = getKingSimpleMoves b p ++ getKingComplexMoves b p
+	| isPiece b p = zip (map promote (map fst (getPieceSimpleMoves b p ++ getPieceComplexMoves b p))) (map snd (getPieceSimpleMoves b p ++ getPieceComplexMoves b p))
+	| isQueen b p = getQueenSimpleMoves b p ++ getQueenComplexMoves b p
 
 extractMove :: Pos -> Moves -> Move
 extractMove p m = m !! fromJust (elemIndex p $ map snd m)
