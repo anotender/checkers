@@ -137,11 +137,11 @@ getNeighbors b (row, col)
 	| isEmpty b (row, col) = []
 	| isPiece b (row, col) && isWhite b (row, col) = [(x, y) | x <- [(row - 1), (row + 1)], y <- [(col - 1), (col + 1)], isValidPos (x, y), isBlack b (x, y)]
 	| isPiece b (row, col) && isBlack b (row, col) = [(x, y) | x <- [(row - 1), (row + 1)], y <- [(col - 1), (col + 1)], isValidPos (x, y), isWhite b (x, y)]
-	| isQueen b (row, col) && isWhite b (row, col) = filter (isBlack b) [(x, y) | x <- [0..7], y <- [0..7], row - col == x - y || row + col == x + y, hasOnlyWhitePlayerBlackPlayerEnemy (createLine b (row, col) (x, y))]
-	| isQueen b (row, col) && isBlack b (row, col) = filter (isWhite b) [(x, y) | x <- [0..7], y <- [0..7], row - col == x - y || row + col == x + y, hasOnlyWhitePlayerWhitePlayerEnemy (createLine b (row, col) (x, y))]
+	| isQueen b (row, col) && isWhite b (row, col) = filter (isBlack b) [(x, y) | x <- [0..7], y <- [0..7], row - col == x - y || row + col == x + y, hasOnlyOneBlackEnemy (createLine b (row, col) (x, y))]
+	| isQueen b (row, col) && isBlack b (row, col) = filter (isWhite b) [(x, y) | x <- [0..7], y <- [0..7], row - col == x - y || row + col == x + y, hasOnlyOneWhiteEnemy (createLine b (row, col) (x, y))]
 	where
-		hasOnlyWhitePlayerBlackPlayerEnemy l = length (filter (isBlack b) l) == 1
-		hasOnlyWhitePlayerWhitePlayerEnemy l = length (filter (isWhite b) l) == 1
+		hasOnlyOneBlackEnemy l = length (filter (isBlack b) l) == 1
+		hasOnlyOneWhiteEnemy l = length (filter (isWhite b) l) == 1
 
 promote :: Board -> Board
 promote b = 
