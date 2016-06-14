@@ -3,10 +3,12 @@ module Move(
 	Moves(),
 	getMoves,
 	isValidMove,
-	extractMove) where
+	extractMove,
+	genGameTree) where
 
 import Data.List
 import Data.Maybe
+import Data.Tree
 import Board
 
 type Neighbor = Pos
@@ -21,7 +23,7 @@ createLine :: Board -> Pos -> Pos -> [Pos]
 createLine b (r1, c1) (r2, c2) = [(x, y) | x <- [(min r1 r2)..(max r1 r2)], y <- [(min c1 c2)..(max c1 c2)], x /= r1, y /= c1, r1 - c1 == x - y || r1 + c1 == x + y]
 
 isValidMove :: Board -> Pos -> Pos -> Bool
-isValidMove b from to = (isValidPos to) && (elem to (map snd $ getMoves b from))
+isValidMove b from to = (isValidPos to) && (elem to (map snd $ getMoves (b, from)))
 
 countPos :: Pos -> Pos -> Pos
 countPos (row, col) (neighborRow, neighborCol) = 
@@ -91,8 +93,8 @@ getQueenComplexMoves b p = map fst (getQueenCaptureMoves ((b, p), (getNeighbors 
 getQueenSimpleMoves :: Board -> Pos -> Moves
 getQueenSimpleMoves b (row, col) = [(makeSimpleMove b (row, col) (x, y), (x, y)) | x <- [0..7], y <- [0..7], row - col == x - y || row + col == x + y, isEmptyLine b (row, col) (x, y)]
 
-getMoves :: Board -> Pos -> Moves
-getMoves b p
+getMoves :: Move -> Moves
+getMoves (b, p)
 	| isEmpty b p = []
 	| isQueen b p = getQueenSimpleMoves b p ++ getQueenComplexMoves b p
 	| isPiece b p = zip (map promote $ map fst pieceMoves) (map snd pieceMoves)
@@ -101,3 +103,10 @@ getMoves b p
 
 extractMove :: Pos -> Moves -> Move
 extractMove p m = m !! fromJust (elemIndex p $ map snd m)
+
+genGameTree :: Int -> Board -> Tree Moves
+genGameTree n b
+	| n == 0 = Node moves []
+	| otherwise = Node moves $ map (genGameTree (n - 1)) (map fst moves)
+	where
+		moves = concat [getMoves (b, (x, y)) | x <- [0..7], y <- [0..7], if (even n) then isWhite b (x, y) else isBlack b (x, y)]
