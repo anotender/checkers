@@ -94,8 +94,10 @@ getQueenSimpleMoves b (row, col) = [(makeSimpleMove b (row, col) (x, y), (x, y))
 getMoves :: Board -> Pos -> Moves
 getMoves b p
 	| isEmpty b p = []
-	| isPiece b p = zip (map promote (map fst (getPieceSimpleMoves b p ++ getPieceComplexMoves b p))) (map snd (getPieceSimpleMoves b p ++ getPieceComplexMoves b p))
 	| isQueen b p = getQueenSimpleMoves b p ++ getQueenComplexMoves b p
+	| isPiece b p = zip (map promote $ map fst pieceMoves) (map snd pieceMoves)
+	where
+		pieceMoves = getPieceSimpleMoves b p ++ getPieceComplexMoves b p
 
 extractMove :: Pos -> Moves -> Move
 extractMove p m = m !! fromJust (elemIndex p $ map snd m)
