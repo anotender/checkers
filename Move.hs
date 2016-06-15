@@ -15,6 +15,7 @@ type Neighbor = Pos
 type Neighbors = [Neighbor]
 type Move = (Board, Pos)
 type Moves = [Move]
+type GameTree = Tree Moves
 
 isEmptyLine :: Board -> Pos -> Pos -> Bool
 isEmptyLine b p1 p2 = all (isEmpty b) (createLine b p1 p2)
@@ -104,7 +105,7 @@ getMoves (b, p)
 extractMove :: Pos -> Moves -> Move
 extractMove p m = m !! fromJust (elemIndex p $ map snd m)
 
-genGameTree :: Int -> Board -> Tree Moves
+genGameTree :: Int -> Board -> GameTree
 genGameTree n b
 	| n == 0 = Node moves []
 	| otherwise = Node moves $ map (genGameTree (n - 1)) (map fst moves)
