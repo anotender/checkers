@@ -1,4 +1,4 @@
-module Game(menu) where
+module Game(menu,takeMove,takePos) where
 
 import Data.Maybe
 import Data.Ord
@@ -8,6 +8,7 @@ import Move
 
 data Player = WhitePlayer | BlackPlayer deriving (Show, Eq)
 
+menu :: Board -> IO()
 menu b = do
 	putStr "1. pvp\n2. pve\n3. quit\n> "
 	choice <- getLine
@@ -17,8 +18,9 @@ menu b = do
 		"3" -> return ()
 		otherwise -> menu b
 
+pvp :: Player -> Board -> IO()
 pvp WhitePlayer b = do
-	putStrLn "First player move"
+	putStrLn "WhitePlayer move"
 	putStr $ showBoard b
 	m <- takeMove
 	if (isWhite b (fst m)) && (isValidMove b (fst m) (snd m)) 
@@ -28,7 +30,7 @@ pvp WhitePlayer b = do
 		else putStrLn "Wrong move" >> pvp WhitePlayer b
 
 pvp BlackPlayer b = do
-	putStrLn "Second player move"
+	putStrLn "BlackPlayer move"
 	putStr $ showBoard b
 	m <- takeMove
 	if (isBlack b (fst m)) && (isValidMove b (fst m) (snd m)) 
@@ -37,6 +39,7 @@ pvp BlackPlayer b = do
 			else pvp WhitePlayer (fst (extractMove (snd m) (getMoves (b, (fst m)))))
 		else putStrLn "Wrong move" >> pvp BlackPlayer b
 
+pve :: Player -> Board -> IO()
 pve WhitePlayer b = do
 	putStrLn "Player move"
 	putStr $ showBoard b
@@ -54,6 +57,7 @@ pve BlackPlayer b = do
 		then putStrLn "Computer won"
 		else pve WhitePlayer bestBoard
 
+takeMove :: IO(Pos, Pos)
 takeMove = do
 	putStr "from: "
 	from <- takePos
@@ -61,6 +65,7 @@ takeMove = do
 	to <- takePos
 	return (from, to)
 
+takePos :: IO(Pos)
 takePos = do
 	pos <- fmap read getLine :: IO Int
 	return (quot pos 10, mod pos 10)
